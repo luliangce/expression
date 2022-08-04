@@ -3,9 +3,9 @@ import re
 import tokenize
 from typing import List
 
-from expression.operators import BaseOperator, get_operator
+from expression.operators import BaseOperator, get_operator, is_operator
 from expression.stack import Stack
-from expression.utils import is_num
+from expression.utils import is_num, is_var
 
 all_op = {i.literal for i in BaseOperator.__subclasses__()}
 
@@ -26,7 +26,7 @@ def parse_token(exp: str) -> List[str]:
             result[i + 1] = e + result[i + 1]
             del result[i]
             continue
-        should_combine_next = not is_num(result[i])
+        should_combine_next = is_operator(result[i])
         i += 1
     return result
 
@@ -44,18 +44,15 @@ def parse(exp: str) -> Stack:
     for tk in tokens:
         if is_num(tk):
             stack.push(float(tk))
-        elif tk in all_op:
+        elif is_var(tk):
+            stack.push(tk)
+        elif is_operator(tk):
             while True:
                 op = get_operator(tk)
-                if len(helper) == 0:
+                if len(helper) == 0 or helper[-1] == "(":
                     helper.append(op)
                     break
-
-                if type(helper[-1]) != type or not issubclass(
-                        helper[-1], BaseOperator):
-                    helper.append(op)
-                    break
-                if helper[-1].priority <= op.priority:
+                if helper[-1].priority >= op.priority:
                     stack.push(helper.pop())
                 else:
                     helper.append(op)
@@ -67,6 +64,7 @@ def parse(exp: str) -> Stack:
             while helper[-1] != "(":
                 stack.push(helper.pop())
             helper.pop()
+
     if helper:
         stack.push(*helper)
     return stack
