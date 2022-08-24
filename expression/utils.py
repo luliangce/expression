@@ -14,4 +14,4 @@ def is_var(s: str):
         return False
     if is_operator(s):
         return False
-    return s.isalpha()
+    return s.isidentifier()
